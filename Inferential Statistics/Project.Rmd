@@ -1,0 +1,106 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+### 3.a Dataset Description
+This project uses an extract of the General Social Survey (GSS) Cumulative File 1972-2012 that was provided by Coursera.
+
+Since 1972, the General Social Survey (GSS) has been monitoring societal change and studying the growing complexity of American society. The GSS aims to gather data on contemporary American society in order to monitor and explain trends and constants in attitudes, behaviors, and attributes; to examine the structure and functioning of society in general as well as the role played by relevant subgroups; to compare the United States to other societies in order to place American society in comparative perspective and develop cross-national models of human society; and to make high-quality data easily accessible to scholars, students, policy makers, and others, with minimal cost and waiting.
+
+GSS questions cover a diverse range of issues including national spending priorities, marijuana use, crime and punishment, race relations, quality of life, confidence in institutions, and sexual behavior.
+
+The data extract contains 57061 observations of 114 variables.
+
+Unlike the full General Social Survey Cumulative File, the extract has been sanitized by removing missing values from the responses and factor variables were created when appropriate to facilitate analysis using R.
+
+### 3.b Scopes of Inference
+As gss is guite large survey organisation, we can assume that statistics standard is followed, As a large representative random sampling was drawn, the data for the sample is generalizable to the adult population of the participating states.
+
+This long term survey is a type of observational study. Therefore, it won’t be possible to make causal inferences from the data.
+
+* * *
+
+## Part 2: Research question
+
+### The impact of Education level of parents (father and mother) on the children education level
+
+In this analysis, I am interested in finding out that the education level of the respondents changes as education level of his parents increasing. I am curious to see if there are any signifcant findings in the dataset.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+```{r}
+eda <- gss %>% select(educ,paeduc,maeduc) %>% filter(!is.na(educ) & !is.na(paeduc) & !is.na(maeduc)) %>% mutate(ParentsEduc = (paeduc+maeduc)/2)
+
+head(eda)
+```
+
+In above statistics ParentsEduc is the average education level of parents for a particular student.
+
+```{r}
+stas <-eda %>% group_by(educ) %>% summarise(avgP = mean(ParentsEduc), sd = sd(ParentsEduc), n= n())
+
+head(stas)
+tail(stas)
+```
+
+Here from above statistics as education level of respondents (educa) increasing their parents average education level (avgP) also increasing, so these two variable may be dependent to each other.
+
+The above relationship can also be shown by plots
+```{r}
+ggplot(stas, aes(x=avgP, y=educ))+
+  geom_point()+
+  labs(x="education level of parents", y="education level of respondents")
+```
+
+from the plot it is shown that their is strong relationship between respondents and their parents education level.
+
+* * *
+
+## Part 4: Inference
+
+### State Hypothesis
+**Null hypothesis:** The educational level of parents and childrens are independents. avgP outcome is same across all categories.
+
+**Alternative hypothesis:** The educational level of parents and childrens are not independents. At least one pair of avgP outcome is different from each other
+
+We are using ANOVA method beacuse here we are comparing more than two means of avgP for 21 levels educ variable.
+CI is not appropriate method for comaring severals means.
+
+### check conditions
+**independence** GSS dataset is generated from a random sample survey. We are fine in assuming that the records are independent and n is definitely less than 10% of population.
+
+from the statistics it is shown that group variance is roughly equal.
+```{r}
+inference(x = educ, y = ParentsEduc, data = eda, statistic = "mean", type = "ht", null = 0, alternative = "greater", method = "theoretical")
+```
+
+because of very high F statistics (822.2252) and too small p value (less than 0.0001) their are strong evidance against NULL hypothesis so we reject the null hypothesis, means At least one pair of avgP outcome is different from each other

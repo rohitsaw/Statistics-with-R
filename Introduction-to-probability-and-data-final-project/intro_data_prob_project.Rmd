@@ -1,0 +1,136 @@
+---
+title: "Exploring the BRFSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `brfss2013`. Delete this note when before you submit 
+your work. 
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+The Behavioral Risk Factor Surveillance System (BRFSS) is a collaborative project between all of the states in the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC).
+BRFSS is an ongoing surveillance system designed to measure behavioral risk factors for the non-institutionalized adult population (18 years of age and older) residing in the US.
+
+###Collection of data
+We can learn about the sampling methods from the [BRFSS Data User Guide](http://www.cdc.gov/brfss/data_documentation/pdf/userguidejune2013.pdf).
+Since 2011, BRFSS conducts both landline telephone- and cellular telephone-based surveys. In conducting the BRFSS landline telephone survey, interviewers collect data from a randomly selected adult in a household. In conducting the cellular telephone version of the BRFSS questionnaire, interviewers collect data from an adult who participates by using a cellular telephone and resides in a private residence or college housing.
+
+### Generalizability
+As it stands, the BRFSS should generalize to all adults (18-years and older) who are household members since the phone numbers are selected by some form of random sampling. The user guide notes that other nations are setting up similar surveys. However, we should not try to generalize to the global adult population for a variety of reasons.
+**the access to landlines and cellular telephones is not similar from country to country.
+**
+
+### Causality
+The BRFSS data is observational not experimental. Even though the phone numbers are randomly selected, the subjects are *not* randomly assigned to experimental study groups because of following reason **State-added Questions: States are encouraged to gather data on additional topics related to
+their specific health priorities.** Therefore, we can only show a correlation/association, not a causation.
+
+
+
+
+* * *
+
+## Part 2: Research questions
+
+**Research quesion 1:**
+
+Is there any correlation between sex "sex" and exercise time "exerhmm1" of person.Are there any difference based on income "income2".? I really more interested in causal relationships but this is only an observational study.
+
+**Research quesion 2:**
+
+Is there any correlation between income "income2" and person Could Not See Dr. Because Of Cost "medcost".
+We are interested to find that income really effects that person could not able to See Doctor.
+
+**Research quesion 3:**
+Is there any correlation between smokers "smoke100" and education level "educa" of person. Are there any difference based on sex "sex?
+we are interested to find that education levels effects a person smoke or not? if they smoke then percentage of Male and Female?
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+
+**Research quesion 1:**
+
+```{r}
+data_narm <- brfss2013 %>% select(income2, exerhmm1, sex) %>% filter(!is.na(income2), !is.na(exerhmm1), !is.na(sex))
+
+data_narm %>% group_by(income2) %>% summarise(meanexer=mean(exerhmm1), totalexer=sum(exerhmm1), female_per=sum(sex == "Female") / n(), Male_per=sum(sex=="Male")/n())
+
+levels(data_narm$income2) <- gsub(" ", "\n",levels(data_narm$income2))
+ggplot(data = data_narm, aes(x = income2,fill = sex)) +
+geom_bar() +
+labs(title="income vs total exercise in minutes", x="income", y="total exercise(in minutes)")
+```
+
+From Summary statistic and plot it is clear that female spends more time in exercise than Male regardless of income levels but this is only an observational study not experiments.
+
+**Research quesion 2:**
+
+```{r}
+data <- brfss2013 %>% select(income2, medcost) %>% filter(!is.na(income2), !is.na(medcost))
+result <- data %>% group_by(income2) %>% summarise(NotSeeDr = sum(medcost=="Yes")/n())
+result
+levels(result$income2) <- gsub(" ", "\n",levels(result$income2))
+ggplot(result, aes(income2, NotSeeDr))+
+geom_point(aes(income2, NotSeeDr))+
+labs(title="percentage of people not able to see doctor because of cost",y="Could Not See Dr. Because Of Cost",x="different income group")
+```
+
+There is strong relationship between income levels and percentage of people not able to see doctor because of cost.
+lower income group most likely not able to see doctor because of cost and these percentage decreasing on increasing income levels.
+
+
+
+**Research quesion 3:**
+
+```{r}
+rq3 <- brfss2013 %>% select(educa, smoke100, sex) %>% filter(!is.na(educa), !is.na(smoke100), !is.na(sex))
+rq <- rq3 %>% group_by(educa) %>% summarise(smoke = sum(smoke100=="Yes")/n(), male_per = sum(sex=="Male")/n(), female_per = sum(sex=="Female")/n() )
+rq
+```
+
+Here those who Never attended school or only kindergarten has minimum smoking percentage and highest in Some high school education level, and one thing interesting to note that female percentage are more in smoking in every education level.
+
+```{r}
+levels(rq$educa) <- gsub(" ", "\n",levels(rq$educa))
+ggplot(rq, aes(x=educa, y=smoke))+geom_point()+
+geom_path(group=1)+
+labs(x="education level", y="smoking percentage")
+```
+
+```{r}
+levels(rq3$educa) <- gsub(" ", "\n",levels(rq3$educa))
+ggplot(data = rq3, aes(x = educa,fill = sex)) +
+geom_bar() +
+labs(title="", x="different education level", y="Proportion of male and female in different education levels")
+```
+
+Here we see that female percentage are more in almost every education levels. Maybe that's a reason number of females is more in smoking percentage.
+
+
